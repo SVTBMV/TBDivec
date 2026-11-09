@@ -3,175 +3,134 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Výkony obsluh TB</title>
+    <title>Roční přehled výroby</title>
     <style>
         :root {
             --bg: #0f172a; --card: #1e293b; --accent: #38bdf8; --text: #f1f5f9; --success: #22c55e; --error: #ef4444; --warning: #eab308; --border: #334155;
         }
-        * { -webkit-tap-highlight-color: transparent; }
-        html { -webkit-text-size-adjust: 100%; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
-        .container { max-width: 1000px; margin: 0 auto; }
-        h1.nadpis { text-align: center; margin-bottom: 10px; letter-spacing: 2px; }
-        p.podnadpis { text-align: center; color: #64748b; margin-top: 0; margin-bottom: 30px; }
+        .container { max-width: 1100px; margin: 0 auto; }
 
         .status-msg { text-align: center; color: var(--accent); font-style: italic; margin-top: 20px; }
-        .msg { padding: 12px; border-radius: 6px; font-size: 0.9rem; font-weight: 500; line-height: 1.4; display: none; }
-        .msg.red { display: block; background: rgba(239, 68, 68, 0.15); border: 1px solid var(--error); color: #f87171; }
+        .msg { padding: 12px; border-radius: 6px; font-size: 0.9rem; font-weight: 500; line-height: 1.4; }
+        .msg.red { background: rgba(239, 68, 68, 0.15); border: 1px solid var(--error); color: #f87171; }
 
-        .login-box { max-width: 380px; margin: 60px auto; background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 30px; text-align: center; }
-        .login-box h3 { margin-top: 0; color: var(--accent); }
-        .login-box input { width: 100%; background: #0f172a; border: 1px solid var(--border); padding: 14px; border-radius: 8px; color: white; margin-bottom: 15px; outline: none; box-sizing: border-box; font-size: 1rem; text-align: center; letter-spacing: 2px; }
-        .login-box input:focus { border-color: var(--accent); }
-        .login-box button { width: 100%; background: var(--accent); color: #000; font-weight: bold; border: none; padding: 14px; border-radius: 8px; cursor: pointer; font-size: 1rem; }
-        .login-box button:hover { opacity: 0.9; }
-        .login-error { color: var(--error); font-size: 0.85rem; margin-top: -5px; margin-bottom: 15px; min-height: 1em; }
+        .toolbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+        .toolbar-left { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .toolbar label { font-size: 0.8rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; }
+        .toolbar select { background: var(--card); color: #fff; border: 2px solid var(--border); border-radius: 8px; padding: 10px 14px; font-size: 0.95rem; font-weight: bold; outline: none; cursor: pointer; }
+        .toolbar select:focus { border-color: var(--accent); }
+        .sync-stav { font-size: 0.8rem; color: #94a3b8; }
 
-        .detekce-info { font-size: 0.78rem; color: #64748b; margin-bottom: 16px; text-align: center; line-height: 1.5; }
+        .tisk-btn { background: var(--card); border: 2px solid var(--accent); color: var(--accent); font-weight: bold; padding: 10px 18px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; white-space: nowrap; }
+        .tisk-btn:hover { background: var(--accent); color: #000; }
+        .tisk-btn:disabled { opacity: 0.5; cursor: wait; }
 
-        .prehled-karta { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 20px; margin-bottom: 20px; }
-        .prehled-hlavicka { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
-        .prehled-jmeno { font-size: 1.15rem; font-weight: 800; color: #fff; }
-        .prehled-osc { font-size: 0.8rem; color: #64748b; font-weight: 500; margin-left: 8px; }
-        .bez-prumeru-tag { font-size: 0.72rem; color: var(--warning); background: rgba(234, 179, 8, 0.12); border: 1px solid var(--warning); padding: 3px 9px; border-radius: 20px; font-weight: 600; }
+        .prehled-karta { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 20px; margin-bottom: 20px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .prehled-nadpis { font-size: 1.3rem; font-weight: 800; color: #fff; margin-bottom: 4px; }
+        .prehled-podnadpis { font-size: 0.85rem; color: #64748b; margin-bottom: 18px; }
 
-        .den-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-bottom: 18px; }
-        .den-summary-card { background: rgba(15, 23, 42, 0.5); border: 1px solid var(--border); border-radius: 10px; padding: 12px; text-align: center; }
-        .den-summary-card .val { display: block; font-size: 1.3rem; font-weight: 800; color: var(--accent); }
-        .den-summary-card .lbl { display: block; font-size: 0.68rem; color: #94a3b8; text-transform: uppercase; margin-top: 3px; letter-spacing: 0.4px; }
+        .souhrn-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; }
+        .souhrn-karta { background: rgba(15, 23, 42, 0.5); border: 1px solid var(--border); border-radius: 10px; padding: 14px; text-align: center; }
+        .souhrn-karta .val { display: block; font-size: 1.3rem; font-weight: 800; color: var(--accent); }
+        .souhrn-karta .val.cerv { color: #f87171; }
+        .souhrn-karta .lbl { display: block; font-size: 0.68rem; color: #94a3b8; text-transform: uppercase; margin-top: 4px; letter-spacing: 0.4px; }
 
-        .tydny-karta { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 20px; margin-bottom: 25px; }
-        .tyden-blok { background: rgba(56, 189, 248, 0.06); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
-        .tyden-blok:last-child { margin-bottom: 0; }
-        .tyden-nazev { font-size: 1.05rem; color: var(--accent); font-weight: 800; }
-        .tyden-stats { font-size: 0.85rem; color: #cbd5e1; font-weight: 600; margin-top: 3px; margin-bottom: 14px; }
-        .tyden-mrizka { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; align-items: end; }
-        .tyden-den { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; min-width: 0; }
-        .td-den-nazev { font-size: 0.78rem; color: #94a3b8; font-weight: 700; text-transform: uppercase; }
-        .td-datum { font-size: 0.85rem; color: #fff; font-weight: 700; margin-top: 2px; text-align: center; }
-        .td-datum .kratke { display: none; }
-        .td-hodnota-radek { font-size: 0.95rem; color: var(--accent); font-weight: 800; margin-top: 4px; margin-bottom: 8px; white-space: nowrap; }
-        .td-sloupec-obal { width: 100%; height: 80px; display: flex; align-items: flex-end; }
-        .td-sloupec { width: 100%; border-radius: 6px 6px 0 0; background: var(--accent); }
-        .td-sloupec.prazdny { height: 4px !important; background: none; border: 1px dashed var(--border); }
-        .tyden-den.prazdny-den .td-datum, .tyden-den.prazdny-den .td-den-nazev { color: #64748b; }
+        .sekce-nadpis { font-size: 1rem; font-weight: 800; color: var(--accent); margin: 26px 0 12px; }
 
-        table.vykony-table { width: 100%; border-collapse: collapse; }
-        table.vykony-table th, table.vykony-table td { padding: 10px 12px; text-align: center; border-bottom: 1px solid var(--border); font-size: 0.88rem; }
-        table.vykony-table th { background: #1e294b; color: var(--accent); text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.5px; }
-        table.vykony-table tr:last-child td { border-bottom: none; }
-        table.vykony-table td.pod-prumerem { color: var(--error); font-weight: 800; background: rgba(239, 68, 68, 0.08); }
-        table.vykony-table td.nad-prumerem { color: var(--success); font-weight: 600; }
-        table.vykony-table td.prazdne { color: #475569; }
+        table.prehled-table { width: 100%; border-collapse: collapse; }
+        table.prehled-table th, table.prehled-table td { padding: 10px 12px; text-align: center; border-bottom: 1px solid var(--border); font-size: 0.88rem; white-space: nowrap; }
+        table.prehled-table th { background: #1e294b; color: var(--accent); text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.5px; }
+        table.prehled-table tr:last-child td { border-bottom: none; }
+        table.prehled-table td.jmeno-bunka { text-align: left; font-weight: 600; color: #fff; }
+        table.prehled-table td.zvyrazneno { color: var(--accent); font-weight: 800; }
+        table.prehled-table td.cerv { color: #f87171; font-weight: 700; }
+        table.prehled-table tr.celkem-radek td { border-top: 2px solid var(--accent); font-weight: 800; background: rgba(56, 189, 248, 0.06); }
 
-        .search-box { width: 100%; background: var(--card); border: 1px solid var(--border); padding: 15px; border-radius: 12px; color: white; margin-bottom: 25px; outline: none; box-sizing: border-box; font-size: 1rem; }
-        .search-box:focus { border-color: var(--accent); }
+        .poznamka { font-size: 0.78rem; color: #64748b; line-height: 1.55; margin-top: 6px; }
+        .poznamka b { color: #94a3b8; }
 
-        /* ===== TABLET / MOBIL ===== */
-        @media (max-width: 720px) {
-            body { padding: 12px; }
-            h1.nadpis { font-size: 1.35rem; letter-spacing: 1px; }
-            p.podnadpis { font-size: 0.85rem; margin-bottom: 18px; }
-
-            .login-box { margin: 30px auto; padding: 24px 20px; }
-            .login-box input { font-size: 16px; } /* zabrání přiblížení na iOS */
-
-            .prehled-karta, .tydny-karta { padding: 14px; border-radius: 12px; margin-bottom: 14px; }
-            .prehled-jmeno { font-size: 1.02rem; }
-
-            .den-summary { grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 14px; }
-            .den-summary-card { padding: 10px 6px; }
-            .den-summary-card .val { font-size: 1.1rem; }
-            .den-summary-card .lbl { font-size: 0.62rem; }
-            .den-summary-card:last-child:nth-child(odd) { grid-column: 1 / -1; }
-
-            .tyden-blok { padding: 12px 10px; }
-            .tyden-nazev { font-size: 0.95rem; }
-            .tyden-stats { font-size: 0.78rem; margin-bottom: 10px; }
-            .tyden-mrizka { gap: 4px; }
-            .td-den-nazev { font-size: 0.68rem; }
-            .td-datum { font-size: 0.66rem; }
-            .td-datum .plne { display: none; }
-            .td-datum .kratke { display: inline; }
-            .td-hodnota-radek { font-size: 0.72rem; margin-bottom: 6px; }
-            .td-hodnota-radek .jednotka { display: none; }
-            .td-sloupec-obal { height: 64px; }
-            .td-sloupec { border-radius: 4px 4px 0 0; }
-
-            .search-box { padding: 13px; font-size: 16px; margin-bottom: 16px; }
-            .detekce-info { font-size: 0.68rem; margin-bottom: 12px; }
-
-            /* tabulka -> karty */
-            table.vykony-table, table.vykony-table tbody { display: block; width: 100%; }
-            table.vykony-table thead { display: none; }
-            table.vykony-table tr {
-                display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px;
-                padding: 12px 4px; border-bottom: 1px solid var(--border);
-            }
-            table.vykony-table tr:last-child { border-bottom: none; }
-            table.vykony-table td {
-                display: flex; flex-direction: column; align-items: flex-start;
-                padding: 4px 8px; border: none; text-align: left; font-size: 0.95rem;
-                border-radius: 6px;
-            }
-            table.vykony-table td::before {
-                content: attr(data-label); font-size: 0.62rem; color: #94a3b8;
-                text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 2px; font-weight: 600;
-            }
-            table.vykony-table td.td-jmeno { grid-column: 1 / -1; font-size: 1.02rem; font-weight: 700; }
-            table.vykony-table td.td-jmeno::before { display: none; }
-            table.vykony-table td.td-jmeno .prehled-osc { margin-left: 0; display: block; margin-top: 2px; }
-        }
-
-        /* ===== MALÉ TELEFONY ===== */
-        @media (max-width: 380px) {
-            .tyden-mrizka { gap: 2px; }
-            .td-datum { font-size: 0.6rem; }
-            .td-hodnota-radek { font-size: 0.66rem; }
-            .tyden-blok { padding: 10px 6px; }
+        @media screen and (max-width: 640px) {
+            body { padding: 12px 10px; }
+            h1 { font-size: 1.25rem !important; letter-spacing: 1px !important; }
+            .prehled-karta { padding: 14px 12px; border-radius: 12px; }
+            .souhrn-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+            .souhrn-karta { padding: 12px 8px; }
+            .souhrn-karta .val { font-size: 1.1rem; }
+            .souhrn-karta .lbl { font-size: 0.62rem; }
+            table.prehled-table { min-width: 640px; }
+            table.prehled-table th, table.prehled-table td { padding: 9px 8px; font-size: 0.82rem; }
+            table.prehled-table td.jmeno-bunka, table.prehled-table th:first-child { position: sticky; left: 0; background: var(--card); z-index: 1; }
+            table.prehled-table th:first-child { background: #1e294b; }
+            table.prehled-table tr.celkem-radek td.jmeno-bunka { background: #213349; }
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1 class="nadpis">VÝKONY OBSLUH TB</h1>
-    <p class="podnadpis">Přehled odpracovaných výkonů podle dat v tabulce</p>
+    <h1 style="text-align: center; margin-bottom: 10px; letter-spacing: 2px;">ROČNÍ PŘEHLED VÝROBY</h1>
+    <p style="text-align: center; color: #64748b; margin-top: 0; margin-bottom: 30px;">Souhrn minut, množství, neshod a cen za celý rok podle středisek</p>
 
-    <div id="app">
-        <div class="login-box">
-            <h3>🔒 Zadejte heslo</h3>
-            <input type="password" id="heslo-input" placeholder="Heslo" inputmode="numeric"
-                onkeydown="if(event.key==='Enter') overitHeslo()">
-            <div class="login-error" id="heslo-error"></div>
-            <button onclick="overitHeslo()">Vstoupit</button>
+    <div class="toolbar">
+        <div class="toolbar-left">
+            <label for="rok-select">Rok</label>
+            <select id="rok-select" onchange="vykresli()"></select>
+            <span class="sync-stav" id="sync-stav"></span>
         </div>
+        <button class="tisk-btn" id="aktualizovat-btn" onclick="nacistData()">🔄 Aktualizovat data</button>
     </div>
+
+    <div id="report-app"><div class="status-msg">Načítám data z tabulky...</div></div>
 </div>
 
 <script>
-    const HESLO = '1592648';
-    const VYKONY_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ96ftfQLYyOBBC_17B8M8-6FgaTaY_YO-1QjR3GHWZlLAdUihoAoHOX49Yt-FvgdXGeMMtoduOQDbf/pub?output=tsv';
-    const PRUMERY_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRI8g8SAqhjH-hUTm7tqWb0AFp9OCSs-iQpzl_w_d7bFCvb4aDAWwZrOJCTqqnB-S1kbTmiLdbrxvJZ/pub?output=tsv';
+    // Publikovaná tabulka (Soubor → Sdílet → Publikovat na webu → TSV)
+    const TSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ96ftfQLYyOBBC_17B8M8-6FgaTaY_YO-1QjR3GHWZlLAdUihoAoHOX49Yt-FvgdXGeMMtoduOQDbf/pub?output=tsv';
 
-    let globalVykonyData = []; // {datum, minuty, jmeno, osCislo}
-    let globalPrumery = {};    // osCislo(lower) -> {jmeno, prumer}
-    let globalDetekceInfo = { vykony: null, prumery: null }; // pro zobrazení info o rozpoznaných sloupcích
+    // Sloupce se hledají podle přesného názvu hlavičky; písmeno sloupce slouží jako záloha.
+    const SLOUPCE = {
+        datum:    { hlavicka: 'datum likvidace',            zaloha: 0  },  // A
+        vykazano: { hlavicka: 'cas celkem vykazany',        zaloha: 1  },  // B (váha pro produktivitu)
+        cas:      { hlavicka: 'cas planovany skutecny',     zaloha: 2  },  // C
+        mnozstvi: { hlavicka: 'mnozstvi',                   zaloha: 3  },  // D
+        neshodne: { hlavicka: 'mnozstvi neshodne',          zaloha: 4  },  // E
+        cena:     { hlavicka: 'cena celkem',                zaloha: 8  },  // I
+        jmeno:    { hlavicka: 'cele jmeno',                 zaloha: 14 },  // O
+        prod:     { hlavicka: 'produktivita (%)',           zaloha: 22 },  // W
+        stredisko:{ hlavicka: 'identifikator strediska',    zaloha: 36 }   // AK
+    };
 
-    function indexNaPismeno(idx) {
-        return String.fromCharCode(65 + idx);
+    let vsechnyRadky = [];
+
+    // ---------- pomocné funkce ----------
+    function normalizovatText(s) {
+        return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().replace(/\s+/g, ' ');
+    }
+    function ocistitBunku(v) {
+        if (v === undefined || v === null) return '';
+        return String(v).replace(/\u00A0/g, ' ').trim();
+    }
+    function parseCislo(v) {
+        const cisty = ocistitBunku(v).replace(/\s/g, '').replace(',', '.').replace(/[^0-9.\-]/g, '');
+        const n = parseFloat(cisty);
+        return isNaN(n) ? 0 : n;
+    }
+    function formatCislo(n, desetin) {
+        return n.toLocaleString('cs-CZ', { minimumFractionDigits: desetin, maximumFractionDigits: desetin });
+    }
+    function formatKc(n) {
+        return `${Math.round(n).toLocaleString('cs-CZ')} Kč`;
+    }
+    function escapeHtml(s) {
+        return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     }
 
-    // --- CSV/TSV pomocné funkce ---
-    function parseCSV(text) {
+    // TSV parser – uvozovky bere v úvahu jen na začátku pole (jinak by rozbil poznámky s uvozovkou uvnitř textu)
+    function parseTSV(text) {
         text = text.replace(/^\uFEFF/, '');
-        // Oddělovač: tabulátor (TSV), pokud je v prvním řádku víc tabulátorů než čárek
-        const prvniRadek = text.split('\n')[0] || '';
-        const SEP = (prvniRadek.split('\t').length > prvniRadek.split(',').length) ? '\t' : ',';
         const rows = [];
-        let row = [];
-        let field = '';
-        let inQuotes = false;
+        let row = [], field = '', inQuotes = false, zacatekPole = true;
         for (let i = 0; i < text.length; i++) {
             const c = text[i];
             if (inQuotes) {
@@ -179,418 +138,218 @@
                     if (text[i + 1] === '"') { field += '"'; i++; }
                     else { inQuotes = false; }
                 } else { field += c; }
+            } else if (c === '"' && zacatekPole) {
+                inQuotes = true; zacatekPole = false;
+            } else if (c === '\t') {
+                row.push(field); field = ''; zacatekPole = true;
+            } else if (c === '\r') {
+                /* ignore */
+            } else if (c === '\n') {
+                row.push(field); rows.push(row); row = []; field = ''; zacatekPole = true;
             } else {
-                if (c === '"') { inQuotes = true; }
-                else if (c === SEP) { row.push(field); field = ''; }
-                else if (c === '\r') { /* ignore */ }
-                else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
-                else { field += c; }
+                field += c; zacatekPole = false;
             }
         }
         if (field.length > 0 || row.length > 0) { row.push(field); rows.push(row); }
-        return rows.filter(r => r.length > 1 || (r.length === 1 && r[0].trim() !== ''));
+        return rows.filter(r => r.some(v => v.trim() !== ''));
     }
 
-    function ocistitBunku(v) {
-        if (v === undefined || v === null) return '';
-        return v.replace(/\u00A0/g, ' ').trim().replace(/^'/, '').trim();
+    function najitSloupce(headerRow) {
+        const hlavicky = headerRow.map(h => normalizovatText(h));
+        const idx = {};
+        const chybi = [];
+        Object.keys(SLOUPCE).forEach(k => {
+            const nalezeno = hlavicky.indexOf(SLOUPCE[k].hlavicka);
+            if (nalezeno !== -1) idx[k] = nalezeno;
+            else {
+                idx[k] = SLOUPCE[k].zaloha;
+                chybi.push(SLOUPCE[k].hlavicka);
+            }
+        });
+        return { idx, chybi };
     }
 
-    function normalizovatDatum(raw) {
-        if (!raw) return null;
-        let s = raw.trim();
-        if (!s) return null;
-        s = s.split(' ')[0];
-
-        let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
-        if (m) return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
-
-        m = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
-        if (m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
-
-        m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-        if (m) return `${m[3]}-${m[1].padStart(2,'0')}-${m[2].padStart(2,'0')}`;
-
-        const d = new Date(s);
-        if (!isNaN(d.getTime())) {
-            return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-        }
-        return null;
+    function rokZDatumu(s) {
+        const m = String(s).match(/(\d{1,2})\.\s*(\d{1,2})\.\s*(\d{4})/);
+        return m ? parseInt(m[3], 10) : null;
     }
 
-    function formatDatumCZ(iso) {
-        const m = String(iso || '').match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
-        if (m) return `${parseInt(m[3],10)}.${parseInt(m[2],10)}.${m[1]}`;
-        return String(iso || '');
+    // ---------- načtení ----------
+    function nastavStav(text, stav) {
+        const el = document.getElementById('sync-stav');
+        el.textContent = text;
+        el.style.color = stav === 'ok' ? 'var(--success)' : stav === 'chyba' ? 'var(--error)' : '#94a3b8';
     }
 
-    // Krátké datum bez roku (pro mobil)
-    function formatDatumKratce(iso) {
-        const m = String(iso || '').match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
-        if (m) return `${parseInt(m[3],10)}.${parseInt(m[2],10)}.`;
-        return String(iso || '');
-    }
-
-    // --- Automatická detekce sloupců podle hlavičky ---
-    function normalizovatHlavicku(s) {
-        return String(s || '')
-            .toLowerCase()
-            .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // odstranit diakritiku
-            .trim();
-    }
-
-    function najitIndex(hlavickyNorm, obsazene, patterny) {
-        for (let i = 0; i < hlavickyNorm.length; i++) {
-            if (obsazene.has(i)) continue;
-            if (patterny.some(p => p.test(hlavickyNorm[i]))) return i;
-        }
-        return -1;
-    }
-
-    // Zjistí sloupce pro tabulku výkonů podle PŘESNÉHO názvu hlavičky (case/diakritika insensitive)
-    function detekovatSloupceVykonu(headerRow) {
-        const hlavicky = headerRow.map(h => normalizovatHlavicku(ocistitBunku(h)));
-        const najitPresne = (presneJmeno) => hlavicky.findIndex(h => h === presneJmeno);
-
-        const idxDatum = najitPresne('datum likvidace');
-        const idxCas = najitPresne('cas planovany skutecny');
-        const idxJmeno = najitPresne('cele jmeno');
-        const idxOsCislo = najitPresne('praci provedl');
-
-        const vse = idxDatum !== -1 && idxCas !== -1 && idxJmeno !== -1 && idxOsCislo !== -1;
-        return { idxDatum, idxCas, idxJmeno, idxOsCislo, vse };
-    }
-
-    // Zjistí sloupce pro tabulku průměrů: osobní číslo, jméno, průměr
-    function detekovatSloupcePrumeru(headerRow) {
-        const hlavicky = headerRow.map(h => normalizovatHlavicku(ocistitBunku(h)));
-        const obsazene = new Set();
-
-        const idxOsCislo = najitIndex(hlavicky, obsazene, [/osob.*cislo/, /cislo.*osob/, /^os\.?\s*c(islo)?$/]);
-        if (idxOsCislo !== -1) obsazene.add(idxOsCislo);
-
-        const idxJmeno = najitIndex(hlavicky, obsazene, [/jmeno/, /prijmeni/, /pracovnik/, /obsluh/]);
-        if (idxJmeno !== -1) obsazene.add(idxJmeno);
-
-        const idxPrumer = najitIndex(hlavicky, obsazene, [/prumer/]);
-        if (idxPrumer !== -1) obsazene.add(idxPrumer);
-
-        const vse = idxOsCislo !== -1 && idxJmeno !== -1 && idxPrumer !== -1;
-        return { idxOsCislo, idxJmeno, idxPrumer, vse };
-    }
-
-    // --- Přihlášení ---
-    function overitHeslo() {
-        const input = document.getElementById('heslo-input');
-        const errorEl = document.getElementById('heslo-error');
-        const zadane = ocistitBunku(input.value);
-
-        if (zadane === HESLO) {
-            nacistData();
-        } else {
-            errorEl.textContent = 'Nesprávné heslo. Zkuste to znovu.';
-            input.value = '';
-            input.focus();
-        }
-    }
-
-    // --- Načtení dat ---
     async function nacistData() {
-        const app = document.getElementById('app');
-        app.innerHTML = `<div class="status-msg">Načítám data o výkonech...</div>`;
+        const app = document.getElementById('report-app');
+        const btn = document.getElementById('aktualizovat-btn');
+        btn.disabled = true;
+        app.innerHTML = `<div class="status-msg">Stahuji tabulku, u celého roku to může chvíli trvat...</div>`;
+        nastavStav('', '');
 
         try {
-            const [vykonyText, prumeryText] = await Promise.all([
-                fetch(VYKONY_URL).then(r => r.text()),
-                fetch(PRUMERY_URL).then(r => r.text())
-            ]);
-
-            // Zpracování výkonů
-            const vykonyRows = parseCSV(vykonyText);
-            globalVykonyData = [];
-
-            let vykonyDetekce = null;
-            let vykonyDataRows = vykonyRows;
-            let vykonyIdx = { idxDatum: 0, idxCas: 2, idxJmeno: 14, idxOsCislo: 15 }; // výchozí (A, C, O, P)
-
-            if (vykonyRows.length > 0) {
-                const detekce = detekovatSloupceVykonu(vykonyRows[0]);
-                if (detekce.vse) {
-                    vykonyIdx = detekce;
-                    vykonyDataRows = vykonyRows.slice(1); // hlavička už posloužila k detekci
-                    vykonyDetekce = detekce;
-                    globalDetekceInfo.vykony = { automaticky: true, idx: detekce };
-                } else {
-                    globalDetekceInfo.vykony = { automaticky: false, idx: vykonyIdx };
-                }
+            let text;
+            try {
+                const odpoved = await fetch(TSV_URL, { cache: 'no-store' });
+                if (!odpoved.ok) throw new Error('HTTP ' + odpoved.status);
+                text = await odpoved.text();
+            } catch (e) {
+                throw new Error('Nepodařilo se stáhnout tabulku (' + e.message + '). Zkontrolujte připojení a že je tabulka stále publikovaná na webu.');
             }
 
-            vykonyDataRows.forEach(cols => {
-                const datumIso = normalizovatDatum(ocistitBunku(cols[vykonyIdx.idxDatum]));
-                const minuty = parseFloat(ocistitBunku(cols[vykonyIdx.idxCas]).replace(',', '.'));
-                const jmeno = ocistitBunku(cols[vykonyIdx.idxJmeno]);
-                const osCislo = ocistitBunku(cols[vykonyIdx.idxOsCislo]);
-                if (!datumIso || isNaN(minuty) || !osCislo) return;
-                globalVykonyData.push({ datum: datumIso, minuty, jmeno, osCislo });
-            });
+            const radky = parseTSV(text);
+            if (radky.length < 2) throw new Error('Tabulka neobsahuje žádná data.');
 
-            // Zpracování průměrů
-            const prumeryRows = parseCSV(prumeryText);
-            globalPrumery = {};
+            const { idx, chybi } = najitSloupce(radky[0]);
 
-            let prumeryDetekce = null;
-            let prumeryDataRows = prumeryRows;
-            let prumeryIdx = { idxOsCislo: 0, idxJmeno: 1, idxPrumer: 2 }; // výchozí (A, B, C)
-
-            if (prumeryRows.length > 0) {
-                const detekce = detekovatSloupcePrumeru(prumeryRows[0]);
-                if (detekce.vse) {
-                    prumeryIdx = detekce;
-                    prumeryDataRows = prumeryRows.slice(1);
-                    prumeryDetekce = detekce;
-                    globalDetekceInfo.prumery = { automaticky: true, idx: detekce };
-                } else {
-                    globalDetekceInfo.prumery = { automaticky: false, idx: prumeryIdx };
-                }
-            }
-
-            prumeryDataRows.forEach((cols, idx) => {
-                const osCislo = ocistitBunku(cols[prumeryIdx.idxOsCislo]);
-                const jmeno = ocistitBunku(cols[prumeryIdx.idxJmeno]);
-                const prumerRaw = ocistitBunku(cols[prumeryIdx.idxPrumer]).replace(',', '.');
-                if (!osCislo) return;
-                if (!prumeryDetekce && idx === 0) {
-                    const nizke = osCislo.toLowerCase();
-                    if (nizke.includes('číslo') || nizke.includes('cislo') || nizke.includes('osob')) return;
-                }
-                const prumer = parseFloat(prumerRaw);
-                globalPrumery[osCislo.toLowerCase()] = {
-                    jmeno,
-                    prumer: isNaN(prumer) ? null : prumer
+            vsechnyRadky = radky.slice(1).map(c => {
+                const mnozstvi = parseCislo(c[idx.mnozstvi]);
+                const neshodne = parseCislo(c[idx.neshodne]);
+                const cena = parseCislo(c[idx.cena]);
+                return {
+                    rok: rokZDatumu(c[idx.datum]),
+                    cas: parseCislo(c[idx.cas]),
+                    vykazano: parseCislo(c[idx.vykazano]),
+                    mnozstvi, neshodne, cena,
+                    // cena neshodných kusů = cena řádku / množství řádku × neshodné množství
+                    cenaNeshod: mnozstvi > 0 ? (cena / mnozstvi) * neshodne : 0,
+                    jmeno: ocistitBunku(c[idx.jmeno]),
+                    prod: parseCislo(c[idx.prod]),
+                    stredisko: ocistitBunku(c[idx.stredisko])
                 };
-            });
+            }).filter(r => r.cas !== 0 || r.mnozstvi !== 0 || r.cena !== 0 || r.neshodne !== 0);
 
-            vykresliVse();
+            if (vsechnyRadky.length === 0) throw new Error('V tabulce nejsou žádné použitelné řádky.');
+
+            naplnitRoky();
+            const upozorneni = chybi.length ? ` · ⚠ nenalezena hlavička: ${chybi.join(', ')} (použito písmeno sloupce)` : '';
+            nastavStav(`☁ Načteno ${vsechnyRadky.length.toLocaleString('cs-CZ')} řádků – ${new Date().toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' })}${upozorneni}`, chybi.length ? 'chyba' : 'ok');
+            vykresli();
         } catch (e) {
-            app.innerHTML = `<div class="msg red" style="display:block">Chyba při načítání dat. Zkontrolujte připojení nebo odkazy na tabulky.</div>`;
+            app.innerHTML = `<div class="msg red">${escapeHtml(e.message)}</div>`;
+        } finally {
+            btn.disabled = false;
         }
     }
 
-    // Vrátí datum pondělí týdne, do kterého daný den spadá (formát YYYY-MM-DD)
-    function pondeliTydne(iso) {
-        const d = new Date(iso + 'T00:00:00');
-        const den = d.getDay(); // 0 = neděle
-        const posun = (den === 0) ? -6 : (1 - den);
-        d.setDate(d.getDate() + posun);
-        return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    function naplnitRoky() {
+        const sel = document.getElementById('rok-select');
+        const predchozi = sel.value;
+        const roky = [...new Set(vsechnyRadky.map(r => r.rok).filter(r => r !== null))].sort((a, b) => b - a);
+        sel.innerHTML = roky.map(r => `<option value="${r}">${r}</option>`).join('') + `<option value="vse">Všechna data</option>`;
+        if (predchozi && [...sel.options].some(o => o.value === predchozi)) sel.value = predchozi;
+        else if (roky.length > 0) sel.value = String(roky[0]);
+        else sel.value = 'vse';
     }
 
-    function vykresliTydenniPrehled(podleDne) {
-        // Celkové minuty za každý den (napříč všemi pracovníky)
-        const celkemMinutPodleDne = {};
-        Object.keys(podleDne).forEach(datumIso => {
-            const hodnoty = Object.values(podleDne[datumIso]).map(z => z.minuty);
-            celkemMinutPodleDne[datumIso] = hodnoty.reduce((a, b) => a + b, 0);
+    // ---------- agregace ----------
+    function secti(radky) {
+        const s = { minuty: 0, mnozstvi: 0, neshodne: 0, cena: 0, cenaNeshod: 0, radku: 0, prodSoucin: 0, vahaProd: 0 };
+        radky.forEach(r => {
+            s.minuty += r.cas;
+            s.mnozstvi += r.mnozstvi;
+            s.neshodne += r.neshodne;
+            s.cena += r.cena;
+            s.cenaNeshod += r.cenaNeshod;
+            s.radku += 1;
+            // orientační produktivita = průměr sloupce W vážený odpracovaným časem (sloupec B)
+            if (r.vykazano > 0) { s.prodSoucin += r.prod * r.vykazano; s.vahaProd += r.vykazano; }
         });
+        s.produktivita = s.vahaProd > 0 ? s.prodSoucin / s.vahaProd : null;
+        s.podilNeshod = s.mnozstvi > 0 ? (s.neshodne / s.mnozstvi) * 100 : null;
+        return s;
+    }
 
-        // Unikátní týdny (klíč = pondělí), ve kterých se vyskytují data
-        const tydnyMnozina = new Set();
-        Object.keys(celkemMinutPodleDne).forEach(datumIso => tydnyMnozina.add(pondeliTydne(datumIso)));
-        const serazeneTydny = [...tydnyMnozina].sort().reverse();
-
-        const dnyZkratky = ['Po', 'Út', 'St', 'Čt', 'Pá', 'So', 'Ne'];
-
-        const tydnyHtml = serazeneTydny.map(pondeli => {
-            // Vygenerovat všech 7 dnů týdne (Po -> Ne)
-            const zaklad = new Date(pondeli + 'T00:00:00');
-            const dnyTydne = [];
-            for (let i = 0; i < 7; i++) {
-                const d = new Date(zaklad);
-                d.setDate(d.getDate() + i);
-                dnyTydne.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`);
-            }
-
-            const pracovniDny = dnyTydne.filter(iso => celkemMinutPodleDne[iso] !== undefined);
-            const hodinyPracovnich = pracovniDny.map(iso => celkemMinutPodleDne[iso] / 60);
-            const celkemHodinTydne = hodinyPracovnich.reduce((a, b) => a + b, 0);
-            const prumerTydne = celkemHodinTydne / 5;
-            const maxHodinTydne = pracovniDny.length > 0 ? Math.max(...hodinyPracovnich) : 0;
-
-            const datumHtml = (iso) => `<span class="plne">${formatDatumCZ(iso)}</span><span class="kratke">${formatDatumKratce(iso)}</span>`;
-
-            const sloupceHtml = dnyTydne.map((iso, idx) => {
-                if (celkemMinutPodleDne[iso] === undefined) {
-                    return `
-                        <div class="tyden-den prazdny-den">
-                            <div class="td-den-nazev">${dnyZkratky[idx]}</div>
-                            <div class="td-datum">${datumHtml(iso)}</div>
-                            <div class="td-hodnota-radek">—</div>
-                            <div class="td-sloupec-obal"><div class="td-sloupec prazdny"></div></div>
-                        </div>`;
-                }
-
-                const hodiny = celkemMinutPodleDne[iso] / 60;
-                const vyskaProcent = maxHodinTydne > 0 ? Math.max((hodiny / maxHodinTydne) * 100, 4) : 4;
-
-                return `
-                    <div class="tyden-den">
-                        <div class="td-den-nazev">${dnyZkratky[idx]}</div>
-                        <div class="td-datum">${datumHtml(iso)}</div>
-                        <div class="td-hodnota-radek">${hodiny.toFixed(1)}<span class="jednotka"> hod.</span></div>
-                        <div class="td-sloupec-obal"><div class="td-sloupec" style="height:${vyskaProcent}%;"></div></div>
-                    </div>`;
-            }).join('');
-
-            return `
-                <div class="tyden-blok">
-                    <div class="tyden-nazev">Týden od ${formatDatumCZ(pondeli)}</div>
-                    <div class="tyden-stats">Celkem ${celkemHodinTydne.toFixed(1)} hod. &nbsp;•&nbsp; Průměr ${prumerTydne.toFixed(1)} hod./den</div>
-                    <div class="tyden-mrizka">${sloupceHtml}</div>
-                </div>`;
-        }).join('');
-
+    function radekSouhrnu(nazev, s, jeCelkem) {
         return `
-            <div class="tydny-karta">
-                <div class="prehled-jmeno" style="margin-bottom:16px;">🗓️ Přehled po týdnech</div>
-                ${tydnyHtml}
-            </div>`;
+            <tr class="${jeCelkem ? 'celkem-radek' : ''}">
+                <td class="jmeno-bunka">${nazev}</td>
+                <td>${formatCislo(s.minuty, 0)}</td>
+                <td>${formatCislo(s.mnozstvi, 0)}</td>
+                <td>${formatCislo(s.neshodne, 0)}</td>
+                <td class="${s.podilNeshod > 5 ? 'cerv' : ''}">${s.podilNeshod !== null ? formatCislo(s.podilNeshod, 1) + '%' : '—'}</td>
+                <td>${formatKc(s.cena)}</td>
+                <td class="cerv">${formatKc(s.cenaNeshod)}</td>
+                <td class="zvyrazneno">${s.produktivita !== null ? formatCislo(s.produktivita, 1) + '%' : '—'}</td>
+                <td>${formatCislo(s.radku, 0)}</td>
+            </tr>`;
     }
 
-    function sestavitTextDetekce() {
-        const v = globalDetekceInfo.vykony;
-        const p = globalDetekceInfo.prumery;
-        let castiV = v
-            ? (v.automaticky
-                ? `Výkony (auto): Datum=${indexNaPismeno(v.idx.idxDatum)}, Čas=${indexNaPismeno(v.idx.idxCas)}, Jméno=${indexNaPismeno(v.idx.idxJmeno)}, Os. číslo=${indexNaPismeno(v.idx.idxOsCislo)}`
-                : `Výkony (výchozí): Datum=${indexNaPismeno(v.idx.idxDatum)}, Čas=${indexNaPismeno(v.idx.idxCas)}, Jméno=${indexNaPismeno(v.idx.idxJmeno)}, Os. číslo=${indexNaPismeno(v.idx.idxOsCislo)}`)
-            : '';
-        let castiP = p
-            ? (p.automaticky
-                ? `Průměry (auto): Os. číslo=${indexNaPismeno(p.idx.idxOsCislo)}, Jméno=${indexNaPismeno(p.idx.idxJmeno)}, Průměr=${indexNaPismeno(p.idx.idxPrumer)}`
-                : `Průměry (výchozí): Os. číslo=${indexNaPismeno(p.idx.idxOsCislo)}, Jméno=${indexNaPismeno(p.idx.idxJmeno)}, Průměr=${indexNaPismeno(p.idx.idxPrumer)}`)
-            : '';
-        return [castiV, castiP].filter(Boolean).join(' &nbsp;•&nbsp; ');
-    }
+    // ---------- vykreslení ----------
+    function vykresli() {
+        const app = document.getElementById('report-app');
+        if (vsechnyRadky.length === 0) return;
 
-    // --- Sestavení a vykreslení ---
-    function vykresliVse() {
-        const app = document.getElementById('app');
+        const volba = document.getElementById('rok-select').value;
+        const radky = volba === 'vse' ? vsechnyRadky : vsechnyRadky.filter(r => String(r.rok) === volba);
+        const popisObdobi = volba === 'vse' ? 'všechna data' : `rok ${volba}`;
 
-        if (globalVykonyData.length === 0) {
-            app.innerHTML = `<div class="status-msg">V tabulce nejsou žádná data o výkonech.</div>`;
+        if (radky.length === 0) {
+            app.innerHTML = `<div class="status-msg">Pro ${popisObdobi} nejsou žádná data.</div>`;
             return;
         }
 
-        // Seskupit záznamy podle dne, a v rámci dne podle osobního čísla (součet minut)
-        const podleDne = {}; // datum -> { osCislo -> {jmeno, minuty} }
-        globalVykonyData.forEach(r => {
-            if (!podleDne[r.datum]) podleDne[r.datum] = {};
-            if (!podleDne[r.datum][r.osCislo]) podleDne[r.datum][r.osCislo] = { jmeno: r.jmeno, minuty: 0 };
-            podleDne[r.datum][r.osCislo].minuty += r.minuty;
-            if (!podleDne[r.datum][r.osCislo].jmeno && r.jmeno) podleDne[r.datum][r.osCislo].jmeno = r.jmeno;
+        const celkem = secti(radky);
+
+        // seskupení podle identifikátoru střediska
+        const skupiny = {};
+        radky.forEach(r => {
+            const klic = r.stredisko || '';
+            (skupiny[klic] = skupiny[klic] || []).push(r);
         });
+        const klice = Object.keys(skupiny).sort((a, b) => {
+            if (a === '') return 1;
+            if (b === '') return -1;
+            const na = parseFloat(a), nb = parseFloat(b);
+            if (!isNaN(na) && !isNaN(nb) && na !== nb) return na - nb;
+            return a.localeCompare(b, 'cs');
+        });
+
+        const radkyStrediska = klice.map(k => radekSouhrnu(k === '' ? 'Bez střediska' : `Středisko ${escapeHtml(k)}`, secti(skupiny[k]), false)).join('');
 
         app.innerHTML = `
-            <div class="detekce-info">${sestavitTextDetekce()}</div>
-            ${vykresliTydenniPrehled(podleDne)}
-            <input type="text" class="search-box" id="hledej-pracovnika" placeholder="Hledat osobní číslo, jméno nebo datum..." oninput="filtrovatRadky()">
-            <div id="dny-wrap"></div>`;
-
-        // Od nejaktuálnějšího data po nejstarší
-        const dny = Object.keys(podleDne).sort().reverse();
-
-        const wrap = document.getElementById('dny-wrap');
-        wrap.innerHTML = dny.map(datumIso => vykresliDen(datumIso, podleDne[datumIso])).join('');
-    }
-
-    function nazevDneVTydnu(iso) {
-        const dny = ['Neděle', 'Pondělí', 'Úterý', 'Středa', 'Čtvrtek', 'Pátek', 'Sobota'];
-        const d = new Date(iso + 'T00:00:00');
-        return dny[d.getDay()];
-    }
-
-    function vykresliDen(datumIso, pracovniciDne) {
-        const cisla = Object.keys(pracovniciDne);
-
-        const hodnoty = cisla.map(c => Math.round(pracovniciDne[c].minuty));
-        const celkemMinut = hodnoty.reduce((a, b) => a + b, 0);
-        const celkemHodin = (celkemMinut / 60).toFixed(1);
-        const minVykon = Math.min(...hodnoty);
-        const maxVykon = Math.max(...hodnoty);
-        const prumerDne = Math.round(celkemMinut / cisla.length);
-
-        // Seřadit pracovníky od nejvýkonnějšího po nejslabšího daný den
-        const serazenaCisla = cisla.slice().sort((a, b) => pracovniciDne[b].minuty - pracovniciDne[a].minuty);
-
-        let radky = '';
-        serazenaCisla.forEach(osCislo => {
-            const zaznam = pracovniciDne[osCislo];
-            const minuty = Math.round(zaznam.minuty);
-            const info = globalPrumery[osCislo.toLowerCase()];
-            const jmeno = (info && info.jmeno) ? info.jmeno : (zaznam.jmeno || '');
-            const prumer = (info && info.prumer !== null && info.prumer !== undefined) ? info.prumer : null;
-            const podil = celkemMinut > 0 ? Math.round((minuty / celkemMinut) * 100) : 0;
-
-            let rozdilBunka = '<td class="prazdne" data-label="Rozdíl oproti průměru">—</td>';
-            if (prumer !== null) {
-                const rozdilProcento = Math.round(((minuty - prumer) / prumer) * 100);
-                const podPrumerem = rozdilProcento <= -10;
-                const znamenko = rozdilProcento > 0 ? '+' : '';
-                rozdilBunka = `<td class="${podPrumerem ? 'pod-prumerem' : 'nad-prumerem'}" data-label="Rozdíl oproti průměru">${znamenko}${rozdilProcento}%</td>`;
-            }
-
-            radky += `
-                <tr data-hledat="${(osCislo + ' ' + jmeno + ' ' + formatDatumCZ(datumIso)).toLowerCase()}">
-                    <td class="td-jmeno" style="text-align:left;" data-label="Jméno">${jmeno || '(bez jména)'} <span class="prehled-osc">${osCislo}</span></td>
-                    <td data-label="Odpracováno">${minuty} min</td>
-                    <td data-label="Jejich průměr">${prumer !== null ? Math.round(prumer) + ' min' : '<span class="prazdne">—</span>'}</td>
-                    ${rozdilBunka}
-                    <td data-label="Podíl na dni">${podil}%</td>
-                </tr>`;
-        });
-
-        return `
-            <div class="prehled-karta den-karta" data-den="${formatDatumCZ(datumIso).toLowerCase()}">
-                <div class="prehled-hlavicka">
-                    <div class="prehled-jmeno">📅 ${nazevDneVTydnu(datumIso)} ${formatDatumCZ(datumIso)}</div>
+            <div class="prehled-karta">
+                <div class="prehled-nadpis">📋 Celkový přehled — ${popisObdobi}</div>
+                <div class="prehled-podnadpis">Všechna střediska dohromady · ${formatCislo(celkem.radku, 0)} řádků</div>
+                <div class="souhrn-grid">
+                    <div class="souhrn-karta"><span class="val">${formatCislo(celkem.minuty, 0)}</span><span class="lbl">Celkem minut</span></div>
+                    <div class="souhrn-karta"><span class="val">${formatKc(celkem.cena)}</span><span class="lbl">Cena celkem</span></div>
+                    <div class="souhrn-karta"><span class="val">${formatCislo(celkem.mnozstvi, 0)}</span><span class="lbl">Množství</span></div>
+                    <div class="souhrn-karta"><span class="val cerv">${formatCislo(celkem.neshodne, 0)}</span><span class="lbl">Množství neshodné${celkem.podilNeshod !== null ? ' (' + formatCislo(celkem.podilNeshod, 1) + '%)' : ''}</span></div>
+                    <div class="souhrn-karta"><span class="val cerv">${formatKc(celkem.cenaNeshod)}</span><span class="lbl">Cena neshodných kusů</span></div>
+                    <div class="souhrn-karta"><span class="val">${celkem.produktivita !== null ? formatCislo(celkem.produktivita, 1) + '%' : '—'}</span><span class="lbl">Orientační produktivita</span></div>
                 </div>
-                <div class="den-summary">
-                    <div class="den-summary-card"><span class="val">${celkemMinut} min</span><span class="lbl">Celkem minut</span></div>
-                    <div class="den-summary-card"><span class="val">${celkemHodin} h</span><span class="lbl">Celkem hodin</span></div>
-                    <div class="den-summary-card"><span class="val">${minVykon} min</span><span class="lbl">Minimální výkon</span></div>
-                    <div class="den-summary-card"><span class="val">${maxVykon} min</span><span class="lbl">Maximální výkon</span></div>
-                    <div class="den-summary-card"><span class="val">${prumerDne} min</span><span class="lbl">Průměrný výkon dne</span></div>
-                </div>
-                <table class="vykony-table">
+            </div>
+
+            <div class="sekce-nadpis">🏭 Přehled podle středisek</div>
+            <div class="prehled-karta">
+                <table class="prehled-table">
                     <thead>
                         <tr>
-                            <th style="text-align:left;">Jméno</th>
-                            <th>Odpracováno</th>
-                            <th>Jejich průměr</th>
-                            <th>Rozdíl oproti průměru</th>
-                            <th>Podíl na dni</th>
+                            <th style="text-align:left;">Středisko</th>
+                            <th>Minuty</th>
+                            <th>Množství</th>
+                            <th>Neshodné ks</th>
+                            <th>% neshod</th>
+                            <th>Cena celkem</th>
+                            <th>Cena neshodných kusů</th>
+                            <th>Orient. produktivita</th>
+                            <th>Řádků</th>
                         </tr>
                     </thead>
-                    <tbody>${radky}</tbody>
+                    <tbody>${radkyStrediska}${radekSouhrnu('Celkem', celkem, true)}</tbody>
                 </table>
+            </div>
+
+            <div class="poznamka">
+                <b>Jak se počítá:</b> Minuty = součet sloupce C (Čas plánovaný skutečný) · Množství = D · Neshodné = E · Cena = I ·
+                <b>Cena neshodných kusů</b> = u každého řádku Cena ÷ Množství × Množství neshodné, pak součet ·
+                <b>Orientační produktivita</b> = sloupec W zprůměrovaný váženě odpracovaným časem (sloupec B) · Středisko = sloupec AK.
             </div>`;
     }
 
-    function filtrovatRadky() {
-        const dotaz = document.getElementById('hledej-pracovnika').value.trim().toLowerCase();
-        document.querySelectorAll('.den-karta').forEach(karta => {
-            const denText = karta.getAttribute('data-den') || '';
-            let shodaVDni = 0, celkemRadku = 0;
-            karta.querySelectorAll('tbody tr').forEach(tr => {
-                celkemRadku++;
-                const hledat = tr.getAttribute('data-hledat') || '';
-                const shoda = dotaz === '' || hledat.includes(dotaz) || denText.includes(dotaz);
-                tr.style.display = shoda ? '' : 'none';
-                if (shoda) shodaVDni++;
-            });
-            karta.style.display = (dotaz === '' || shodaVDni > 0 || denText.includes(dotaz)) ? 'block' : 'none';
-        });
-    }
+    nacistData();
 </script>
 
 </body>
