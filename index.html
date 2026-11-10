@@ -47,6 +47,22 @@
         table.prehled-table td.cerv { color: #f87171; font-weight: 700; }
         table.prehled-table tr.celkem-radek td { border-top: 2px solid var(--accent); font-weight: 800; background: rgba(56, 189, 248, 0.06); }
 
+
+        details.sekce { margin-bottom: 18px; }
+        details.sekce > summary { list-style: none; cursor: pointer; background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; user-select: none; }
+        details.sekce > summary::-webkit-details-marker { display: none; }
+        details.sekce > summary:hover { border-color: var(--accent); }
+        details.sekce[open] > summary { border-bottom-left-radius: 0; border-bottom-right-radius: 0; border-bottom-color: transparent; }
+        details.sekce > summary .nadpis { font-size: 1.05rem; font-weight: 800; color: var(--accent); }
+        details.sekce > summary .info { font-size: 0.8rem; color: #94a3b8; margin-left: auto; }
+        details.sekce > summary .sipka { color: var(--accent); transition: transform .15s; }
+        details.sekce[open] > summary .sipka { transform: rotate(90deg); }
+        details.sekce > .prehled-karta { margin-bottom: 0; border-top-left-radius: 0; border-top-right-radius: 0; }
+        table.prehled-table th.tridit { cursor: pointer; user-select: none; }
+        table.prehled-table th.tridit:hover { color: #fff; }
+        table.prehled-table th.aktivni { color: #fff; }
+        table.prehled-table th .sip { display: inline-block; width: 1em; }
+
         .poznamka { font-size: 0.78rem; color: #64748b; line-height: 1.55; margin-top: 6px; }
         .poznamka b { color: #94a3b8; }
 
@@ -70,7 +86,7 @@
 
 <div class="container">
     <h1 style="text-align: center; margin-bottom: 10px; letter-spacing: 2px;">ROČNÍ PŘEHLED VÝROBY</h1>
-    <p style="text-align: center; color: #64748b; margin-top: 0; margin-bottom: 30px;">Souhrn minut, množství, neshod a cen za celý rok podle středisek</p>
+    <p style="text-align: center; color: #64748b; margin-top: 0; margin-bottom: 30px;">Souhrn minut, množství, neshod a cen za celý rok podle středisek a lidí</p>
 
     <div class="toolbar">
         <div class="toolbar-left">
@@ -174,6 +190,12 @@
         return m ? parseInt(m[3], 10) : null;
     }
 
+    function parseDatum(s) {
+        const m = String(s).match(/(\d{1,2})\.\s*(\d{1,2})\.\s*(\d{4})/);
+        return m ? new Date(parseInt(m[3], 10), parseInt(m[2], 10) - 1, parseInt(m[1], 10)) : null;
+    }
+    function formatDatum(d) { return d ? d.toLocaleDateString('cs-CZ') : '—'; }
+
     // ---------- načtení ----------
     function nastavStav(text, stav) {
         const el = document.getElementById('sync-stav');
@@ -209,6 +231,7 @@
                 const cena = parseCislo(c[idx.cena]);
                 return {
                     rok: rokZDatumu(c[idx.datum]),
+                    datum: parseDatum(c[idx.datum]),
                     cas: parseCislo(c[idx.cas]),
                     vykazano: parseCislo(c[idx.vykazano]),
                     mnozstvi, neshodne, cena,
@@ -216,7 +239,8 @@
                     cenaNeshod: mnozstvi > 0 ? (cena / mnozstvi) * neshodne : 0,
                     jmeno: ocistitBunku(c[idx.jmeno]),
                     prod: parseCislo(c[idx.prod]),
-                    stredisko: ocistitBunku(c[idx.stredisko])
+                    stredisko: ocistitBunku(c[idx.stredisko]),
+                    platne: /^\d+$/.test(ocistitBunku(c[idx.stredisko]))
                 };
             }).filter(r => r.cas !== 0 || r.mnozstvi !== 0 || r.cena !== 0 || r.neshodne !== 0);
 
@@ -261,6 +285,38 @@
         return s;
     }
 
+    function seskupit(radky, funkceKlice) {
+        const m = {};
+        radky.forEach(r => { const k = funkceKlice(r); (m[k] = m[k] || []).push(r); });
+        return Object.keys(m).map(k => ({ nazev: k, s: secti(m[k]) }));
+    }
+
+    // ---------- řazení a rozbalovací tabulky ----------
+    const SLOUPCE_TABULKY = [
+        { klic: 'nazev',        text: null },   // text se doplní podle tabulky
+        { klic: 'minuty',       text: 'Minuty' },
+        { klic: 'mnozstvi',     text: 'Množství' },
+        { klic: 'neshodne',     text: 'Neshodné ks' },
+        { klic: 'podilNeshod',  text: '% neshod' },
+        { klic: 'cena',         text: 'Cena celkem' },
+        { klic: 'cenaNeshod',   text: 'Cena neshodných kusů' },
+        { klic: 'produktivita', text: 'Orient. produktivita' },
+        { klic: 'radku',        text: 'Řádků' }
+    ];
+    // výchozí řazení: nejvíce odvedených minut nahoře
+    const tabulky = {
+        strediska: { skupiny: [], celkem: null, prvni: 'Středisko', predpona: 'Středisko ', trid: { klic: 'minuty', smer: -1 } },
+        lide:      { skupiny: [], celkem: null, prvni: 'Jméno',     predpona: '',           trid: { klic: 'minuty', smer: -1 } }
+    };
+    const otevreno = { strediska: false, lide: false };
+
+    function trid(id, klic) {
+        const t = tabulky[id];
+        if (t.trid.klic === klic) t.trid.smer = -t.trid.smer;
+        else t.trid = { klic, smer: klic === 'nazev' ? 1 : -1 };   // čísla od největšího, text od A
+        renderTabulka(id);
+    }
+
     function radekSouhrnu(nazev, s, jeCelkem) {
         return `
             <tr class="${jeCelkem ? 'celkem-radek' : ''}">
@@ -276,14 +332,61 @@
             </tr>`;
     }
 
+    function renderTabulka(id) {
+        const t = tabulky[id];
+        const cil = document.getElementById('tab-' + id);
+        if (!cil) return;
+        const { klic, smer } = t.trid;
+
+        const serazene = [...t.skupiny].sort((a, b) => {
+            let r;
+            if (klic === 'nazev') {
+                r = a.nazev.localeCompare(b.nazev, 'cs', { numeric: true });
+            } else {
+                const va = a.s[klic] === null ? -Infinity : a.s[klic];
+                const vb = b.s[klic] === null ? -Infinity : b.s[klic];
+                r = va === vb ? 0 : (va < vb ? -1 : 1);
+            }
+            if (r !== 0) return r * smer;
+            return (b.s.minuty - a.s.minuty) || a.nazev.localeCompare(b.nazev, 'cs', { numeric: true });
+        });
+
+        const hlavicka = SLOUPCE_TABULKY.map(c => {
+            const aktivni = c.klic === klic;
+            const sip = aktivni ? (smer === -1 ? '▼' : '▲') : '';
+            const text = c.klic === 'nazev' ? t.prvni : c.text;
+            const styl = c.klic === 'nazev' ? ' style="text-align:left;"' : '';
+            return `<th class="tridit ${aktivni ? 'aktivni' : ''}"${styl} onclick="trid('${id}','${c.klic}')" title="Seřadit podle: ${text}">${text} <span class="sip">${sip}</span></th>`;
+        }).join('');
+
+        const radky = serazene.map(g => radekSouhrnu(escapeHtml(t.predpona + g.nazev), g.s, false)).join('');
+        cil.innerHTML = `
+            <table class="prehled-table">
+                <thead><tr>${hlavicka}</tr></thead>
+                <tbody>${radky}${radekSouhrnu('Celkem', t.celkem, true)}</tbody>
+            </table>`;
+    }
+
+    function sekceHtml(id, nadpis, info) {
+        return `
+            <details class="sekce" data-id="${id}" ${otevreno[id] ? 'open' : ''}>
+                <summary><span class="sipka">▶</span><span class="nadpis">${nadpis}</span><span class="info">${info}</span></summary>
+                <div class="prehled-karta" id="tab-${id}"></div>
+            </details>`;
+    }
+
     // ---------- vykreslení ----------
     function vykresli() {
         const app = document.getElementById('report-app');
         if (vsechnyRadky.length === 0) return;
 
         const volba = document.getElementById('rok-select').value;
-        const radky = volba === 'vse' ? vsechnyRadky : vsechnyRadky.filter(r => String(r.rok) === volba);
+        const vRoce = volba === 'vse' ? vsechnyRadky : vsechnyRadky.filter(r => String(r.rok) === volba);
         const popisObdobi = volba === 'vse' ? 'všechna data' : `rok ${volba}`;
+
+        // střediska, která nejsou číselná, jsou chyby v systému → vynechat ze všeho
+        const radky = vRoce.filter(r => r.platne);
+        const vynechano = vRoce.length - radky.length;
 
         if (radky.length === 0) {
             app.innerHTML = `<div class="status-msg">Pro ${popisObdobi} nejsou žádná data.</div>`;
@@ -291,27 +394,19 @@
         }
 
         const celkem = secti(radky);
+        const data = radky.map(r => r.datum).filter(Boolean);
+        const od = data.length ? new Date(Math.min(...data)) : null;
+        const doD = data.length ? new Date(Math.max(...data)) : null;
 
-        // seskupení podle identifikátoru střediska
-        const skupiny = {};
-        radky.forEach(r => {
-            const klic = r.stredisko || '';
-            (skupiny[klic] = skupiny[klic] || []).push(r);
-        });
-        const klice = Object.keys(skupiny).sort((a, b) => {
-            if (a === '') return 1;
-            if (b === '') return -1;
-            const na = parseFloat(a), nb = parseFloat(b);
-            if (!isNaN(na) && !isNaN(nb) && na !== nb) return na - nb;
-            return a.localeCompare(b, 'cs');
-        });
-
-        const radkyStrediska = klice.map(k => radekSouhrnu(k === '' ? 'Bez střediska' : `Středisko ${escapeHtml(k)}`, secti(skupiny[k]), false)).join('');
+        tabulky.strediska.skupiny = seskupit(radky, r => r.stredisko);
+        tabulky.strediska.celkem = celkem;
+        tabulky.lide.skupiny = seskupit(radky, r => r.jmeno || 'Neuvedeno');
+        tabulky.lide.celkem = celkem;
 
         app.innerHTML = `
             <div class="prehled-karta">
                 <div class="prehled-nadpis">📋 Celkový přehled — ${popisObdobi}</div>
-                <div class="prehled-podnadpis">Všechna střediska dohromady · ${formatCislo(celkem.radku, 0)} řádků</div>
+                <div class="prehled-podnadpis">Všechna střediska dohromady · ${formatCislo(celkem.radku, 0)} řádků · data od ${formatDatum(od)} do ${formatDatum(doD)}</div>
                 <div class="souhrn-grid">
                     <div class="souhrn-karta"><span class="val">${formatCislo(celkem.minuty, 0)}</span><span class="lbl">Celkem minut</span></div>
                     <div class="souhrn-karta"><span class="val">${formatKc(celkem.cena)}</span><span class="lbl">Cena celkem</span></div>
@@ -322,31 +417,21 @@
                 </div>
             </div>
 
-            <div class="sekce-nadpis">🏭 Přehled podle středisek</div>
-            <div class="prehled-karta">
-                <table class="prehled-table">
-                    <thead>
-                        <tr>
-                            <th style="text-align:left;">Středisko</th>
-                            <th>Minuty</th>
-                            <th>Množství</th>
-                            <th>Neshodné ks</th>
-                            <th>% neshod</th>
-                            <th>Cena celkem</th>
-                            <th>Cena neshodných kusů</th>
-                            <th>Orient. produktivita</th>
-                            <th>Řádků</th>
-                        </tr>
-                    </thead>
-                    <tbody>${radkyStrediska}${radekSouhrnu('Celkem', celkem, true)}</tbody>
-                </table>
-            </div>
+            ${sekceHtml('strediska', '🏭 Podle středisek', `${tabulky.strediska.skupiny.length} středisek · řazeno podle minut`)}
+            ${sekceHtml('lide', '👷 Podle lidí', `${tabulky.lide.skupiny.length} lidí · řazeno podle minut`)}
 
             <div class="poznamka">
                 <b>Jak se počítá:</b> Minuty = součet sloupce C (Čas plánovaný skutečný) · Množství = D · Neshodné = E · Cena = I ·
                 <b>Cena neshodných kusů</b> = u každého řádku Cena ÷ Množství × Množství neshodné, pak součet ·
-                <b>Orientační produktivita</b> = sloupec W zprůměrovaný váženě odpracovaným časem (sloupec B) · Středisko = sloupec AK.
+                <b>Orientační produktivita</b> = sloupec W zprůměrovaný váženě odpracovaným časem (sloupec B) · Středisko = sloupec AK · Jméno = sloupec O.<br>
+                Kliknutím na záhlaví sloupce se tabulka seřadí podle něj (opakované kliknutí obrátí pořadí).
+                ${vynechano > 0 ? `<br><b>Vynecháno ${formatCislo(vynechano, 0)} řádků</b> s nečíselným nebo prázdným střediskem (chyby v systému).` : ''}
             </div>`;
+
+        renderTabulka('strediska');
+        renderTabulka('lide');
+        app.querySelectorAll('details.sekce').forEach(d =>
+            d.addEventListener('toggle', () => { otevreno[d.dataset.id] = d.open; }));
     }
 
     nacistData();
