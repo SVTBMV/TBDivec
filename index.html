@@ -288,13 +288,26 @@
     function seskupit(radky, funkceKlice) {
         const m = {};
         radky.forEach(r => { const k = funkceKlice(r); (m[k] = m[k] || []).push(r); });
-        return Object.keys(m).map(k => ({ nazev: k, s: secti(m[k]) }));
+        const total = radky.reduce((a, r) => a + r.cas, 0);
+        return Object.keys(m).map(k => {
+            const s = secti(m[k]);
+            s.podil = total > 0 ? (s.minuty / total) * 100 : 0;   // podíl na celkových minutách
+            // hlavní středisko = kde má skupina nejvíce výkazů (řádků); při shodě rozhoduje více minut
+            const poc = {};
+            m[k].forEach(r => { const o = poc[r.stredisko] = poc[r.stredisko] || { n: 0, min: 0 }; o.n++; o.min += r.cas; });
+            const best = Object.keys(poc).sort((a, b) => (poc[b].n - poc[a].n) || (poc[b].min - poc[a].min))[0];
+            s.hlavniStredisko = best !== undefined ? Number(best) : null;
+            s.hlavniPodil = best !== undefined ? (poc[best].n / m[k].length) * 100 : 0;
+            return { nazev: k, s };
+        });
     }
 
     // ---------- řazení a rozbalovací tabulky ----------
     const SLOUPCE_TABULKY = [
         { klic: 'nazev',        text: null },   // text se doplní podle tabulky
+        { klic: 'hlavniStredisko', text: 'Hlavní středisko', jen: 'lide' },
         { klic: 'minuty',       text: 'Minuty' },
+        { klic: 'podil',        text: 'Podíl z minut' },
         { klic: 'mnozstvi',     text: 'Množství' },
         { klic: 'neshodne',     text: 'Neshodné ks' },
         { klic: 'podilNeshod',  text: '% neshod' },
@@ -313,15 +326,17 @@
     function trid(id, klic) {
         const t = tabulky[id];
         if (t.trid.klic === klic) t.trid.smer = -t.trid.smer;
-        else t.trid = { klic, smer: klic === 'nazev' ? 1 : -1 };   // čísla od největšího, text od A
+        else t.trid = { klic, smer: (klic === 'nazev' || klic === 'hlavniStredisko') ? 1 : -1 };   // čísla od největšího, text od A
         renderTabulka(id);
     }
 
-    function radekSouhrnu(nazev, s, jeCelkem) {
+    function radekSouhrnu(nazev, s, jeCelkem, id) {
         return `
             <tr class="${jeCelkem ? 'celkem-radek' : ''}">
                 <td class="jmeno-bunka">${nazev}</td>
+                ${id === 'lide' ? `<td>${jeCelkem || s.hlavniStredisko === null ? '—' : `Stř. ${s.hlavniStredisko} <span style="color:#64748b">(${formatCislo(s.hlavniPodil, 0)} %)</span>`}</td>` : ''}
                 <td>${formatCislo(s.minuty, 0)}</td>
+                <td class="zvyrazneno">${formatCislo(s.podil, 1)}%</td>
                 <td>${formatCislo(s.mnozstvi, 0)}</td>
                 <td>${formatCislo(s.neshodne, 0)}</td>
                 <td class="${s.podilNeshod > 5 ? 'cerv' : ''}">${s.podilNeshod !== null ? formatCislo(s.podilNeshod, 1) + '%' : '—'}</td>
@@ -351,7 +366,7 @@
             return (b.s.minuty - a.s.minuty) || a.nazev.localeCompare(b.nazev, 'cs', { numeric: true });
         });
 
-        const hlavicka = SLOUPCE_TABULKY.map(c => {
+        const hlavicka = SLOUPCE_TABULKY.filter(c => !c.jen || c.jen === id).map(c => {
             const aktivni = c.klic === klic;
             const sip = aktivni ? (smer === -1 ? '▼' : '▲') : '';
             const text = c.klic === 'nazev' ? t.prvni : c.text;
@@ -359,11 +374,11 @@
             return `<th class="tridit ${aktivni ? 'aktivni' : ''}"${styl} onclick="trid('${id}','${c.klic}')" title="Seřadit podle: ${text}">${text} <span class="sip">${sip}</span></th>`;
         }).join('');
 
-        const radky = serazene.map(g => radekSouhrnu(escapeHtml(t.predpona + g.nazev), g.s, false)).join('');
+        const radky = serazene.map(g => radekSouhrnu(escapeHtml(t.predpona + g.nazev), g.s, false, id)).join('');
         cil.innerHTML = `
             <table class="prehled-table">
                 <thead><tr>${hlavicka}</tr></thead>
-                <tbody>${radky}${radekSouhrnu('Celkem', t.celkem, true)}</tbody>
+                <tbody>${radky}${radekSouhrnu('Celkem', t.celkem, true, id)}</tbody>
             </table>`;
     }
 
@@ -394,6 +409,7 @@
         }
 
         const celkem = secti(radky);
+        celkem.podil = 100;
         const data = radky.map(r => r.datum).filter(Boolean);
         const od = data.length ? new Date(Math.min(...data)) : null;
         const doD = data.length ? new Date(Math.max(...data)) : null;
@@ -424,6 +440,7 @@
                 <b>Jak se počítá:</b> Minuty = součet sloupce C (Čas plánovaný skutečný) · Množství = D · Neshodné = E · Cena = I ·
                 <b>Cena neshodných kusů</b> = u každého řádku Cena ÷ Množství × Množství neshodné, pak součet ·
                 <b>Orientační produktivita</b> = sloupec W zprůměrovaný váženě odpracovaným časem (sloupec B) · Středisko = sloupec AK · Jméno = sloupec O.<br>
+                <b>Podíl z minut</b> = minuty řádku ÷ celkové minuty · <b>Hlavní středisko</b> = středisko, kde má člověk nejvíce výkazů (v závorce jeho podíl výkazů).<br>
                 Kliknutím na záhlaví sloupce se tabulka seřadí podle něj (opakované kliknutí obrátí pořadí).
                 ${vynechano > 0 ? `<br><b>Vynecháno ${formatCislo(vynechano, 0)} řádků</b> s nečíselným nebo prázdným střediskem (chyby v systému).` : ''}
             </div>`;
