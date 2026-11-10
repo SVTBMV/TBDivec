@@ -235,8 +235,6 @@
                     cas: parseCislo(c[idx.cas]),
                     vykazano: parseCislo(c[idx.vykazano]),
                     mnozstvi, neshodne, cena,
-                    // cena neshodných kusů = cena řádku / množství řádku × neshodné množství
-                    cenaNeshod: mnozstvi > 0 ? (cena / mnozstvi) * neshodne : 0,
                     jmeno: ocistitBunku(c[idx.jmeno]),
                     prod: parseCislo(c[idx.prod]),
                     stredisko: ocistitBunku(c[idx.stredisko]),
@@ -269,13 +267,12 @@
 
     // ---------- agregace ----------
     function secti(radky) {
-        const s = { minuty: 0, mnozstvi: 0, neshodne: 0, cena: 0, cenaNeshod: 0, radku: 0, prodSoucin: 0, vahaProd: 0 };
+        const s = { minuty: 0, mnozstvi: 0, neshodne: 0, cena: 0, radku: 0, prodSoucin: 0, vahaProd: 0 };
         radky.forEach(r => {
             s.minuty += r.cas;
             s.mnozstvi += r.mnozstvi;
             s.neshodne += r.neshodne;
             s.cena += r.cena;
-            s.cenaNeshod += r.cenaNeshod;
             s.radku += 1;
             // orientační produktivita = průměr sloupce W vážený odpracovaným časem (sloupec B)
             if (r.vykazano > 0) { s.prodSoucin += r.prod * r.vykazano; s.vahaProd += r.vykazano; }
@@ -312,7 +309,6 @@
         { klic: 'neshodne',     text: 'Neshodné ks' },
         { klic: 'podilNeshod',  text: '% neshod' },
         { klic: 'cena',         text: 'Cena celkem' },
-        { klic: 'cenaNeshod',   text: 'Cena neshodných kusů' },
         { klic: 'produktivita', text: 'Orient. produktivita' },
         { klic: 'radku',        text: 'Řádků' }
     ];
@@ -341,7 +337,6 @@
                 <td>${formatCislo(s.neshodne, 0)}</td>
                 <td class="${s.podilNeshod > 5 ? 'cerv' : ''}">${s.podilNeshod !== null ? formatCislo(s.podilNeshod, 1) + '%' : '—'}</td>
                 <td>${formatKc(s.cena)}</td>
-                <td class="cerv">${formatKc(s.cenaNeshod)}</td>
                 <td class="zvyrazneno">${s.produktivita !== null ? formatCislo(s.produktivita, 1) + '%' : '—'}</td>
                 <td>${formatCislo(s.radku, 0)}</td>
             </tr>`;
@@ -428,7 +423,6 @@
                     <div class="souhrn-karta"><span class="val">${formatKc(celkem.cena)}</span><span class="lbl">Cena celkem</span></div>
                     <div class="souhrn-karta"><span class="val">${formatCislo(celkem.mnozstvi, 0)}</span><span class="lbl">Množství</span></div>
                     <div class="souhrn-karta"><span class="val cerv">${formatCislo(celkem.neshodne, 0)}</span><span class="lbl">Množství neshodné${celkem.podilNeshod !== null ? ' (' + formatCislo(celkem.podilNeshod, 1) + '%)' : ''}</span></div>
-                    <div class="souhrn-karta"><span class="val cerv">${formatKc(celkem.cenaNeshod)}</span><span class="lbl">Cena neshodných kusů</span></div>
                     <div class="souhrn-karta"><span class="val">${celkem.produktivita !== null ? formatCislo(celkem.produktivita, 1) + '%' : '—'}</span><span class="lbl">Orientační produktivita</span></div>
                 </div>
             </div>
@@ -438,7 +432,6 @@
 
             <div class="poznamka">
                 <b>Jak se počítá:</b> Minuty = součet sloupce C (Čas plánovaný skutečný) · Množství = D · Neshodné = E · Cena = I ·
-                <b>Cena neshodných kusů</b> = u každého řádku Cena ÷ Množství × Množství neshodné, pak součet ·
                 <b>Orientační produktivita</b> = sloupec W zprůměrovaný váženě odpracovaným časem (sloupec B) · Středisko = sloupec AK · Jméno = sloupec O.<br>
                 <b>Podíl z minut</b> = minuty řádku ÷ celkové minuty · <b>Hlavní středisko</b> = středisko, kde má člověk nejvíce výkazů (v závorce jeho podíl výkazů).<br>
                 Kliknutím na záhlaví sloupce se tabulka seřadí podle něj (opakované kliknutí obrátí pořadí).
